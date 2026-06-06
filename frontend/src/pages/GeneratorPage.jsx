@@ -136,6 +136,9 @@ export default function GeneratorPage() {
             shimLines.push(`const ${local} = React.${imported};`)
           }
         }
+      } else if (source === 'prop-types') {
+        const propTypesName = defaultName || 'PropTypes'
+        shimLines.push(`const ${propTypesName} = window.PropTypes;`)
       } else {
         if (defaultName) {
           shimLines.push(
@@ -155,7 +158,8 @@ export default function GeneratorPage() {
       }
     }
 
-    // Remove all ESM imports and rely on generated shims above.
+    // Remove type-only imports and ESM imports; rely on generated shims above.
+    s = s.replace(/^\s*import\s+type\s+.*?;?\s*$/gm, '')
     s = s.replace(/^\s*import\s+.*?;?\s*$/gm, '')
     if (shimLines.length) {
       s = `${shimLines.join('\n')}\n${s}`
@@ -201,6 +205,7 @@ export default function GeneratorPage() {
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>body{margin:0;padding:16px;background:${iframeBg};color:${iframeColor};font-family:ui-sans-serif,system-ui;}</style>
   </head>
@@ -210,6 +215,19 @@ export default function GeneratorPage() {
       const source = ${JSON.stringify(safeCode)};
       const mount = document.getElementById('root');
       try {
+        if (!window.PropTypes) {
+          const mk = () => {
+            const checker = () => null;
+            checker.isRequired = () => null;
+            return checker;
+          };
+          window.PropTypes = {
+            array: mk(), bool: mk(), func: mk(), number: mk(), object: mk(), string: mk(),
+            symbol: mk(), node: mk(), element: mk(), any: mk(), instanceOf: () => mk(),
+            oneOf: () => mk(), oneOfType: () => mk(), arrayOf: mk(), objectOf: mk(),
+            shape: () => mk(), exact: () => mk(),
+          };
+        }
         const transformed = Babel.transform(source, {
           filename: 'Component.tsx',
           presets: [
