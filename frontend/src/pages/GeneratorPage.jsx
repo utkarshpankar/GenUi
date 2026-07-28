@@ -158,9 +158,11 @@ export default function GeneratorPage() {
       }
     }
 
-    // Remove type-only imports and ESM imports; rely on generated shims above.
-    s = s.replace(/^\s*import\s+type\s+.*?;?\s*$/gm, '')
-    s = s.replace(/^\s*import\s+.*?;?\s*$/gm, '')
+    // Remove type-only imports and all ESM imports (including multiline/side-effect imports).
+    // The preview runs via eval in a classic script context, so any remaining `import` will crash.
+    s = s.replace(/^\s*import\s+type[\s\S]*?;?\s*$/gm, '')
+    s = s.replace(/^\s*import[\s\S]*?from\s+['"][^'"]+['"]\s*;?\s*$/gm, '')
+    s = s.replace(/^\s*import\s+['"][^'"]+['"]\s*;?\s*$/gm, '')
     if (shimLines.length) {
       s = `${shimLines.join('\n')}\n${s}`
     }
@@ -234,7 +236,8 @@ export default function GeneratorPage() {
             // Babel preset-typescript removed the isTSX/allExtensions options.
             // Since we pass filename=Component.tsx, JSX parsing will still work.
             ['typescript'],
-            ['react'],
+            // Force classic runtime so Babel does not emit jsx-runtime module imports.
+            ['react', { runtime: 'classic' }],
           ],
         }).code;
         // eslint-disable-next-line no-eval
