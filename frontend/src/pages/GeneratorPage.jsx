@@ -231,7 +231,9 @@ export default function GeneratorPage() {
         const transformed = Babel.transform(source, {
           filename: 'Component.tsx',
           presets: [
-            ['typescript', { isTSX: true, allExtensions: true }],
+            // Babel preset-typescript removed the isTSX/allExtensions options.
+            // Since we pass filename=Component.tsx, JSX parsing will still work.
+            ['typescript'],
             ['react'],
           ],
         }).code;
